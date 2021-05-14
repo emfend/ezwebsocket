@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 #include "../utils/log.h"
 #include <arpa/inet.h>
 #include <errno.h>
@@ -254,6 +255,31 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   {
     log_err("connection failed");
     goto ERROR;
+  }
+
+  int optval = socketInit->keepalive == true;
+
+  if(setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0)
+  {
+    log_err("setsockopt SO_KEEPALIVE failed");
+  }
+
+  optval = socketInit->keep_idle_sec;
+  if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval)) < 0)
+  {
+    log_err("setsockopt TCP_KEEPIDLE failed");
+  }
+
+  optval = socketInit->keep_cnt;
+  if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval)) < 0)
+  {
+    log_err("setsockopt TCP_KEEPCNT failed");
+  }
+
+  optval = socketInit->keep_intvl;
+  if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval)) < 0)
+  {
+    log_err("setsockopt TCP_KEEPINTVL failed");
   }
 
   socketDesc->state = SOCKET_CLIENT_STATE_CONNECTED;

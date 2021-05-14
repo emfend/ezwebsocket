@@ -1779,7 +1779,7 @@ void websocketServer_close(struct websocket_server_desc *wsDesc)
  */
 struct websocket_connection_desc *websocketClient_open(struct websocket_client_init *wsInit, void *websocketUserData)
 {
-  struct socket_client_init socketInit;
+  struct socket_client_init socketInit = { 0 };
   struct websocket_connection_desc *wsConnection;
 
   wsConnection = refcnt_allocate(sizeof(struct websocket_connection_desc), freeConnection);
@@ -1839,6 +1839,10 @@ struct websocket_connection_desc *websocketClient_open(struct websocket_client_i
   }
 
   socketInit.port = tempPort;
+  socketInit.keepalive = wsInit->keepalive;
+  socketInit.keep_idle_sec = wsInit->keep_idle_sec;
+  socketInit.keep_cnt = wsInit->keep_cnt;
+  socketInit.keep_intvl = wsInit->keep_intvl;
 
   socketInit.address = wsInit->address;
   socketInit.socket_onOpen = websocketClient_onOpen;

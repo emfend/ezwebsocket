@@ -25,6 +25,14 @@ struct socket_client_init
   unsigned short port;
   //! the address we want to connect to
   const char *address;
+  //! Enable or disable keepalive
+  bool keepalive;
+  //! How long to wait before sending out the first probe on an idle connection
+  int keep_idle_sec;
+  //! The number of unanswered probes required to force closure of the socket
+  int keep_cnt;
+  //! The frequency of keepalive packets after the first one is sent
+  int keep_intvl;
 };
 
 int socketClient_send(void *socketDescriptor, void *msg, size_t len);

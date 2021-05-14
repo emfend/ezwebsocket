@@ -104,6 +104,14 @@ struct websocket_client_init
   const char *hostname;
   //! the endpoint of the remote (e.g. /chat)
   const char *endpoint;
+    //! Enable or disable keepalive
+  bool keepalive;
+  //! How long to wait before sending out the first probe on an idle connection
+  int keep_idle_sec;
+  //! The number of unanswered probes required to force closure of the socket
+  int keep_cnt;
+  //! The frequency of keepalive packets after the first one is sent
+  int keep_intvl;
 };
 
 //! structure to configure a websocket server socket

@@ -51,7 +51,7 @@ void onClose(void *socketUserData, struct websocket_connection_desc *connectionD
  */
 void runTest(void)
 {
-  struct websocket_client_init websocketInit;
+  struct websocket_client_init websocketInit = { 0 };
   struct websocket_connection_desc *wsConnectionDesc;
 
   websocketInit.port = "9001";
