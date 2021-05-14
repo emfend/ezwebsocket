@@ -127,6 +127,22 @@ struct websocket_init
 };
 
 /**
+ * \brief Returns the ipv4 address of the client
+ *
+ * \param *wsConnectionDesc Pointer to the websocket client descriptor
+ *
+ */
+const char *websocketServer_getPeerIp(struct websocket_connection_desc *wsConnectionDesc);
+
+/**
+ * \brief Returns the ipv4 address of the server interface
+ *
+ * \param *wsConnectionDesc Pointer to the websocket client descriptor
+ *
+ */
+const char *websocketServer_getServerIp(struct websocket_connection_desc *wsConnectionDesc);
+
+/**
  * \brief Returns the user data of the given client
  *
  * \param *wsConnectionDesc Pointer to the websocket client descriptor

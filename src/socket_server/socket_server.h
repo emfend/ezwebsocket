@@ -37,5 +37,6 @@ int socketServer_send(struct socket_connection_desc *connectionDesc, void *msg, 
 struct socket_server_desc *socketServer_open(struct socket_server_init *socketInit, void *socketUserData);
 void socketServer_close(struct socket_server_desc *socketDesc);
 
-
+const char *socket_get_server_ip(struct socket_connection_desc *desc);
+const char *socket_get_peer_ip(struct socket_connection_desc *desc);
 #endif /* SOCKET_SERVER_H_ */

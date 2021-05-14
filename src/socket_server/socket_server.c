@@ -53,7 +53,22 @@ struct socket_connection_desc
   struct dyn_buffer buffer;
   //! the user data for the connection
   void *connectionUserData;
+  //! ipv4 string from peer
+  char peer_ip[16];
+  //! ipv4 string from server
+  char server_ip[16];
 };
+
+
+const char *socket_get_server_ip(struct socket_connection_desc *desc)
+{
+	return desc->server_ip;
+}
+
+const char *socket_get_peer_ip(struct socket_connection_desc *desc)
+{
+	return desc->peer_ip;
+}
 
 //! structure needed for the linked list that contains all connections
 struct socket_connection_list_element
@@ -278,6 +293,9 @@ static void *connectionThread(void *params)
   return NULL;
 }
 
+//usage: snprintf(str,sizeof(str),"%d.%d.%d.%d",FMT_IP(int));
+#define FMT_IP(ip)   (ip & 0xFF000000) >> 24,(ip & 0x00FF0000) >> 16,(ip & 0x0000FF00) >> 8,ip & 0x000000FF
+
 /**
  * \brief starts a new connection
  *
@@ -289,6 +307,8 @@ static void *connectionThread(void *params)
 static int startConnection(int socketFd, struct socket_server_desc *socketDesc)
 {
   struct socket_connection_desc *desc;
+  struct sockaddr_in sock_addr = { 0 };
+  socklen_t sock_addr_len = sizeof(sock_addr);
 
   desc = refcnt_allocate(sizeof(struct socket_connection_desc), NULL);
   if(!desc)
@@ -298,6 +318,16 @@ static int startConnection(int socketFd, struct socket_server_desc *socketDesc)
   }
 
   memset(desc, 0, sizeof(struct socket_connection_desc));
+
+  if(!getsockname(socketFd, (struct sockaddr *) &sock_addr, &sock_addr_len))
+    snprintf(desc->server_ip, sizeof(desc->server_ip), "%d.%d.%d.%d", FMT_IP(htonl(sock_addr.sin_addr.s_addr)));
+  else
+    log_err("error getsockname");
+
+  if(!getpeername(socketFd, (struct sockaddr *) &sock_addr, &sock_addr_len))
+    snprintf(desc->peer_ip, sizeof(desc->peer_ip), "%d.%d.%d.%d", FMT_IP(htonl(sock_addr.sin_addr.s_addr)));
+  else
+    log_err("error getpeername");
 
   desc->connectionSocketFd = socketFd;
   desc->socketDesc = socketDesc;

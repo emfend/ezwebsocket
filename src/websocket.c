@@ -1155,6 +1155,22 @@ static enum ws_msg_state parseMessage(struct websocket_connection_desc *wsConnec
   return rc;
 }
 
+const char *websocketServer_getPeerIp(struct websocket_connection_desc *wsConnectionDesc)
+{
+   if(wsConnectionDesc->wsType == WS_TYPE_SERVER)
+      return socket_get_peer_ip(wsConnectionDesc->socketClientDesc);
+   else
+      return NULL;
+}
+
+const char *websocketServer_getServerIp(struct websocket_connection_desc *wsConnectionDesc)
+{
+   if(wsConnectionDesc->wsType == WS_TYPE_SERVER)
+      return socket_get_server_ip(wsConnectionDesc->socketClientDesc);
+   else
+      return NULL;
+}
+
 /**
  * \brief Function that gets called when a connection to a client is established
  *         allocates and initialises the wsClientDesc
