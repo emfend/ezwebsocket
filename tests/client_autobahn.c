@@ -79,7 +79,7 @@ void runTest(void)
     while(websocketConnection_isConnected(wsConnectionDesc))
       usleep(100000);
 
-    websocketClient_close(wsConnectionDesc);
+    websocketClient_close(wsConnectionDesc, WS_CLOSE_CODE_NORMAL);
 
     currentTestNum++;
 
@@ -93,7 +93,7 @@ void runTest(void)
   while(websocketConnection_isConnected(wsConnectionDesc))
     usleep(100000);
 
-  websocketClient_close(wsConnectionDesc);
+  websocketClient_close(wsConnectionDesc, WS_CLOSE_CODE_NORMAL);
 
   currentTestNum = 0;
   numberOfTestCases = 0;

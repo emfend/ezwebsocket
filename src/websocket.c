@@ -1869,7 +1869,7 @@ struct websocket_connection_desc *websocketClient_open(struct websocket_client_i
 
   return wsConnection;
 
-  ERROR: websocketClient_close(wsConnection);
+  ERROR: websocketClient_close(wsConnection, WS_CLOSE_CODE_PROTOCOL_ERROR);
   return NULL;
 }
 
@@ -1878,12 +1878,15 @@ struct websocket_connection_desc *websocketClient_open(struct websocket_client_i
  *        and decreases the reference counter of wsConnectionDesc by 1
  *
  * \param *wsConnectionDesc Pointer to the websocket client descriptor
+ * \param code The closing code
  */
-void websocketClient_close(struct websocket_connection_desc *wsConnectionDesc)
+void websocketClient_close(struct websocket_connection_desc *wsConnectionDesc, enum ws_close_code code)
 {
   if(wsConnectionDesc == NULL)
     return;
 
+  if(wsConnectionDesc->socketClientDesc)
+    websocket_closeConnection(wsConnectionDesc, code);
   freeConnection(wsConnectionDesc);
   wsConnectionDesc->state = WS_STATE_CLOSED;
   refcnt_unref(wsConnectionDesc);
@@ -1898,6 +1901,9 @@ void websocketClient_close(struct websocket_connection_desc *wsConnectionDesc)
  */
 bool websocketConnection_isConnected(struct websocket_connection_desc *wsConnectionDesc)
 {
+  if(!wsConnectionDesc)
+    return false;
+
   return (wsConnectionDesc->state != WS_STATE_CLOSED);
 }
 

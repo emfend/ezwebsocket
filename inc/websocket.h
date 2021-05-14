@@ -184,8 +184,9 @@ void websocketServer_close(struct websocket_server_desc *wsDesc);
  * \brief Closes a websocket client
  *
  * \param *wsConnectionDesc Pointer to the websocket client descriptor
- */
-void websocketClient_close(struct websocket_connection_desc *wsConnectionDesc);
+ * \param code The closing code
+*/
+void websocketClient_close(struct websocket_connection_desc *wsConnectionDesc, enum ws_close_code code);
 
 /**
  * \brief Returns if the connection is still connected
