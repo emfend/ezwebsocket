@@ -21,6 +21,9 @@
 #include <string.h>
 #include <pthread.h>
 #include "utils/ref_count.h"
+#ifdef HAVE_OPENSSL
+#include <openssl/ssl.h>
+#endif /* HAVE_OPENSSL */
 
 //! the minimum buffer allocation size
 #define MIN_ALLOC_SIZE 2048

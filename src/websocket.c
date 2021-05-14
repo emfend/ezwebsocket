@@ -9,7 +9,7 @@
 
 //! define needed for asprintf
 #define _GNU_SOURCE
-
+#include <config.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +19,6 @@
 #include "websocket.h"
 #include <ctype.h>
 #include <string.h>
-#include "utils/sha1.h"
 #include "utils/stringck.h"
 #include "utils/ref_count.h"
 #include <time.h>
@@ -28,7 +27,14 @@
 #include "utils/base64.h"
 #include <unistd.h>
 #include <limits.h>
-
+#ifdef HAVE_OPENSSL
+  #include <openssl/ssl.h>
+  #include <openssl/err.h>
+  #include <openssl/crypto.h>
+  #include <openssl/sha.h>
+#else
+  #include "utils/sha1.h"
+#endif
 //! timeout for fragmented messages
 #define MESSAGE_TIMEOUT_S 30
 
@@ -174,8 +180,11 @@ static char* calculateSecWebSocketAccept(const char *key)
 
   snprintf(concatString, sizeof(concatString), "%s" WS_ACCEPT_MAGIC_KEY, key);
 
+#ifdef HAVE_OPENSSL
+  SHA1((const unsigned char *)concatString, strlen(concatString), sha1Hash);
+#else
   SHA1((char*)sha1Hash, concatString, strlen(concatString));
-
+#endif /* HAVE_OPENSSL */
   return base64_encode(sha1Hash, 20);
 }
 
@@ -1973,4 +1982,12 @@ void websocket_close(void *wsDesc)
 void *websocket_getClientUserData(void *wsClientDesc)
 {
   return websocket_getConnectionUserData(wsClientDesc);
+}
+
+void websocket_init()
+{
+  #ifdef HAVE_OPENSSL
+    SSL_library_init();
+    SSL_load_error_strings();
+  #endif
 }

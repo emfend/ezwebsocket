@@ -281,6 +281,7 @@ void websocket_close(void *wsDesc);
  */
 void* websocket_getClientUserData(void *wsClientDesc);
 
+void websocket_init();
 
 #ifdef __cplusplus
 }

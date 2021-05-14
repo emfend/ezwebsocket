@@ -15,7 +15,7 @@ Simple Websocket Library that supports server and client written in C
 # Installation:
 
 * download and extract
-* $> meson build_dir -D examples=false
+* $> meson build_dir -D openssl=true -D examples=false
 * $> cd build_dir
 * $> ninja
 * $> sudo ninja install

@@ -25,7 +25,6 @@ A million repetitions of "a"
 
 #include "sha1.h"
 
-
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
 /* blk0() and blk() perform the initial expand. */
@@ -293,4 +292,3 @@ void SHA1(
     SHA1Final((unsigned char *)hash_out, &ctx);
     hash_out[20] = '\0';
 }
-
