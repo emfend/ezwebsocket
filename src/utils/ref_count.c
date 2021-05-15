@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "log.h"
+#include <ezwebsocket_log.h>
 #if (__STDC_VERSION__ >= 201112L)
 #include <stdatomic.h>
 #endif
@@ -46,7 +46,7 @@ void *refcnt_allocate(size_t size, void (*pfnFree)(void*))
   ref = malloc(sizeof(struct ref_cnt_obj) + size);
   if(!ref)
   {
-    log_err("malloc failed");
+    ezwebsocket_log(EZLOG_ERROR, "malloc failed\n");
     return NULL;
   }
   ref->cnt = 1;
@@ -92,12 +92,12 @@ void refcnt_unref(void *ptr)
   if (ref->cnt >= 0)
     ref->cnt--;
   else
-    log_err("too many unrefs");
+    ezwebsocket_log(EZLOG_ERROR, "too many unrefs\n");
   pthread_mutex_unlock(&ref->lock);
 #else
   atomic_fetch_sub((int *)&ref->cnt, 1);
   if (ref->cnt < 0)
-    log_err("too many unrefs");
+    ezwebsocket_log(EZLOG_ERROR, "too many unrefs\n");
 #endif
 
   if(ref->cnt == 0)

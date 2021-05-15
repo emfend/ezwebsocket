@@ -1,1 +1,1 @@
-install_headers('websocket.h')
+install_headers('ezwebsocket.h', 'ezwebsocket_log.h')

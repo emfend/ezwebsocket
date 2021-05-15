@@ -13,7 +13,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
-#include "websocket.h"
+#include <ezwebsocket.h>
 #include <unistd.h>
 
 static uint32_t numberOfTestCases = 0;

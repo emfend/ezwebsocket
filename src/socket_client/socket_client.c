@@ -14,7 +14,7 @@
 #include <netinet/ip.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
-#include "../utils/log.h"
+#include <ezwebsocket_log.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include "socket_client.h"
@@ -169,7 +169,7 @@ int socketClient_send(void *socketDescriptor, void *msg, size_t len)
   int rc;
   if(socketDesc == NULL)
   {
-    log_err("error socket descriptor is NULL");
+    ezwebsocket_log(EZLOG_ERROR, "error socket descriptor is NULL\n");
     return -1;
   }
 
@@ -178,7 +178,7 @@ int socketClient_send(void *socketDescriptor, void *msg, size_t len)
   rc = send(socketDesc->socketFd, msg, len, MSG_NOSIGNAL);
   if(rc == -1)
   {
-    log_err("send failed: %s", strerror(errno));
+    ezwebsocket_log(EZLOG_ERROR, "send failed: %s\n", strerror(errno));
   }
   return ((size_t)rc == len ? 0 : -1);
 }
@@ -228,7 +228,7 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   socketDesc->socketFd = socket(AF_INET, SOCK_STREAM, 0);
   if(socketDesc->socketFd < 0)
   {
-    log_err("failed to create socket");
+    ezwebsocket_log(EZLOG_ERROR, "failed to create socket\n");
     goto ERROR;
   }
 
@@ -238,11 +238,11 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
 
   if (setsockopt (socketDesc->socketFd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
               sizeof(timeout)) < 0)
-      log_err("setsockopt failed");
+      ezwebsocket_log(EZLOG_ERROR, "setsockopt failed\n");
 
   if (setsockopt (socketDesc->socketFd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
               sizeof(timeout)) < 0)
-      log_err("setsockopt failed");
+      ezwebsocket_log(EZLOG_ERROR, "setsockopt failed\n");
 
   struct sockaddr_in server;
 
@@ -253,7 +253,7 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   //Connect to remote server
   if(connect(socketDesc->socketFd, (struct sockaddr*)&server, sizeof(server)) < 0)
   {
-    log_err("connection failed");
+    ezwebsocket_log(EZLOG_ERROR, "connection failed\n");
     goto ERROR;
   }
 
@@ -261,25 +261,25 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
 
   if(setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0)
   {
-    log_err("setsockopt SO_KEEPALIVE failed");
+    ezwebsocket_log(EZLOG_ERROR, "setsockopt SO_KEEPALIVE failed\n");
   }
 
   optval = socketInit->keep_idle_sec;
   if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval)) < 0)
   {
-    log_err("setsockopt TCP_KEEPIDLE failed");
+    ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPIDLE failed\n");
   }
 
   optval = socketInit->keep_cnt;
   if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval)) < 0)
   {
-    log_err("setsockopt TCP_KEEPCNT failed");
+    ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPCNT failed\n");
   }
 
   optval = socketInit->keep_intvl;
   if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval)) < 0)
   {
-    log_err("setsockopt TCP_KEEPINTVL failed");
+    ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPINTVL failed\n");
   }
 
   socketDesc->state = SOCKET_CLIENT_STATE_CONNECTED;
@@ -289,7 +289,7 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   {
     socketDesc->state = SOCKET_CLIENT_STATE_DISCONNECTED;
     socketDesc->taskRunning = false;
-    log_err("failed to create socket client thread");
+    ezwebsocket_log(EZLOG_ERROR, "failed to create socket client thread\n");
     goto ERROR;
   }
   else

@@ -16,14 +16,14 @@
 #include <stdbool.h>
 #include "socket_server/socket_server.h"
 #include "socket_client/socket_client.h"
-#include "websocket.h"
+#include <ezwebsocket.h>
 #include <ctype.h>
 #include <string.h>
-#include "utils/stringck.h"
-#include "utils/ref_count.h"
+#include "stringck.h"
+#include "ref_count.h"
 #include <time.h>
 #include "utils/utf8.h"
-#include "utils/log.h"
+#include <ezwebsocket_log.h>
 #include "utils/base64.h"
 #include <unistd.h>
 #include <limits.h>
@@ -37,8 +37,6 @@
 #endif
 //! timeout for fragmented messages
 #define MESSAGE_TIMEOUT_S 30
-
-#undef VERBOSE_MODE
 
 //! if payload length in the websocket header is smaller or equal than this
 //! the extended payload is not used
@@ -200,6 +198,7 @@ static char* calculateSecWebSocketAccept(const char *key)
 //! websocket handshake key identifier length
 #define WS_HS_KEY_LEN 25
 
+
 /**
  * \brief Parses the http header and extracts the Sec-WebSocket-Key
  *
@@ -218,7 +217,7 @@ static int parseHttpHeader(const char *wsHeader, size_t len, char *key)
   cpnt = strnstr((char*)wsHeader, WS_HS_KEY_ID, len);
   if(!cpnt)
   {
-    log_err("%s() couldn't find key", __func__);
+    ezwebsocket_log(EZLOG_ERROR, "%s() couldn't find key\n", __func__);
     return -1;
   }
 
@@ -239,10 +238,7 @@ static int parseHttpHeader(const char *wsHeader, size_t len, char *key)
 
   key[i] = '\0';
 
-#ifdef VERBOSE_MODE
-  log_dbg("%s() key:%s", __func__, key);
-#endif
-
+  ezwebsocket_log(EZLOG_DEBUG, "%s() key:%s\n", __func__, key);
   return 0;
 }
 
@@ -268,7 +264,7 @@ static int sendWsHandshakeReply(struct socket_connection_desc *socketConnectionD
 
   if(snprintf(replyHeader, sizeof(replyHeader), WS_HANDSHAKE_REPLY_BLUEPRINT, replyKey) >= (int)sizeof(replyHeader))
   {
-    log_err("problem with the handshake reply key (buffer to small)");
+    ezwebsocket_log(EZLOG_ERROR, "problem with the handshake reply key (buffer to small)\n");
     return -1;
   }
 
@@ -301,10 +297,11 @@ static bool checkWsHandshakeReply(struct websocket_connection_desc *wsConnection
   char *acceptString = NULL;
   bool retVal = false;
 
+  ezwebsocket_log(EZLOG_DEBUG, "%s() HS_REPLY_ID: %.*s\n", __func__, (int)*len, header);
   cpnt = strnstr(header, WS_HS_REPLY_ID, *len);
   if(!cpnt)
   {
-    log_err("%s() couldn't find key", __func__);
+    ezwebsocket_log(EZLOG_ERROR, "%s() couldn't find key\n", __func__);
     return false;
   }
 
@@ -335,7 +332,7 @@ static bool checkWsHandshakeReply(struct websocket_connection_desc *wsConnection
   acceptString = calculateSecWebSocketAccept(wsDesc->wsKey);
   if(acceptString == NULL)
   {
-    log_err("calculateSecWebSocketAccept failed");
+    ezwebsocket_log(EZLOG_ERROR, "calculateSecWebSocketAccept failed\n");
     return false;
   }
 
@@ -374,13 +371,13 @@ static bool sendWsHandshakeRequest(struct websocket_connection_desc *wsConnectio
       "Sec-WebSocket-Key: %s\r\n"
       "Sec-WebSocket-Version: 13\r\n\r\n", wsDesc->endpoint, wsDesc->address, wsDesc->port, wsDesc->wsKey) < 0)
   {
-    log_err("asprintf failed");
+    ezwebsocket_log(EZLOG_ERROR, "asprintf failed\n");
     goto EXIT;
   }
 
   if(socketClient_send(wsConnectionDesc->socketClientDesc, requestHeader, strlen(requestHeader)) == -1)
   {
-    log_err("socketClient_send failed");
+    ezwebsocket_log(EZLOG_ERROR, "socketClient_send failed\n");
     goto EXIT;
   }
 
@@ -446,13 +443,13 @@ struct ws_header
  */
 static void  __attribute__((unused)) printWsHeader(const struct ws_header *header)
 {
-  log_dbg("----ws header----");
-  log_dbg("opcode:%d", header->opcode);
-  log_dbg("fin:%d", header->fin);
-  log_dbg("masked:%d", header->masked);
-  log_dbg("pllength:%zu", header->payloadLength);
-  log_dbg("ploffset:%u", header->payloadStartOffset);
-  log_dbg("-----------------");
+  ezwebsocket_log(EZLOG_DEBUG, "----ws header----\n");
+  ezwebsocket_log_continue(EZLOG_DEBUG, "opcode:%d\n", header->opcode);
+  ezwebsocket_log_continue(EZLOG_DEBUG, "fin:%d\n", header->fin);
+  ezwebsocket_log_continue(EZLOG_DEBUG, "masked:%d\n", header->masked);
+  ezwebsocket_log_continue(EZLOG_DEBUG, "pllength:%zu\n", header->payloadLength);
+  ezwebsocket_log_continue(EZLOG_DEBUG, "ploffset:%u\n", header->payloadStartOffset);
+  ezwebsocket_log_continue(EZLOG_DEBUG, "-----------------\n");
 }
 
 /**
@@ -470,7 +467,7 @@ static int parseWebsocketHeader(const unsigned char *data, size_t len, struct ws
   header->opcode = data[0] & 0x0F;
   if(data[0] & 0x70) //reserved bits must be 0
   {
-    log_err("reserved bits must be 0");
+    ezwebsocket_log(EZLOG_ERROR, "reserved bits must be 0\n");
     return -1;
   }
   switch(header->opcode)
@@ -484,7 +481,7 @@ static int parseWebsocketHeader(const unsigned char *data, size_t len, struct ws
       break;
 
     default:
-      log_err("opcode unknown (%d)", header->opcode);
+      ezwebsocket_log(EZLOG_ERROR, "opcode unknown (%d)\n", header->opcode);
       return -1;
   }
 
@@ -527,9 +524,7 @@ static int parseWebsocketHeader(const unsigned char *data, size_t len, struct ws
     header->payloadLength |= data[2 + i];
   }
 
-#ifdef VERBOSE_MODE
-  log_dbg("payloadlength:%zu", header->payloadLength);
-#endif
+  ezwebsocket_log(EZLOG_DEBUG, "payloadlength:%zu\n", header->payloadLength);
 
   if(header->masked)
   {
@@ -697,9 +692,7 @@ static int sendDataLowLevel(struct websocket_connection_desc *wsConnectionDesc, 
   }
   free(sendBuffer);
 
-#ifdef VERBOSE_MODE
-  log_dbg("%s retv:%d", __func__, rc);
-#endif
+  ezwebsocket_log(EZLOG_DEBUG, "%s retv:%d\n", __func__, rc);
 
   return rc;
 }
@@ -769,7 +762,7 @@ static enum ws_msg_state handleFirstMessage(struct websocket_connection_desc *ws
 
   if(wsConnectionDesc->lastMessage.data != NULL)
   {
-    log_err("last message not finished");
+    ezwebsocket_log(EZLOG_ERROR, "last message not finished\n");
     websocket_closeConnection(wsConnectionDesc, WS_CLOSE_CODE_PROTOCOL_ERROR);
     return WS_MSG_STATE_ERROR;
   }
@@ -782,7 +775,7 @@ static enum ws_msg_state handleFirstMessage(struct websocket_connection_desc *ws
       wsConnectionDesc->lastMessage.data = malloc(header->payloadLength);
     if(!wsConnectionDesc->lastMessage.data)
     {
-      log_err("refcnt_allocate failed dropping message");
+      ezwebsocket_log(EZLOG_ERROR, "refcnt_allocate failed dropping message\n");
       return WS_MSG_STATE_ERROR;
     }
 
@@ -813,7 +806,7 @@ static enum ws_msg_state handleFirstMessage(struct websocket_connection_desc *ws
         &wsConnectionDesc->lastMessage.utf8Handle);
     if((header->fin && (state != UTF8_STATE_OK)) || (!header->fin && (state == UTF8_STATE_FAIL)))
     {
-      log_err("no valid utf8 string closing connection");
+      ezwebsocket_log(EZLOG_ERROR, "no valid utf8 string closing connection\n");
       websocket_closeConnection(wsConnectionDesc, WS_CLOSE_CODE_INVALID_DATA);
       return WS_MSG_STATE_ERROR;
     }
@@ -841,14 +834,14 @@ static enum ws_msg_state handleContMessage(struct websocket_connection_desc *wsC
 
   if(!wsConnectionDesc->lastMessage.firstReceived)
   {
-    log_err("missing last message closing connection");
+    ezwebsocket_log(EZLOG_ERROR, "missing last message closing connection\n");
     websocket_closeConnection(wsConnectionDesc, WS_CLOSE_CODE_PROTOCOL_ERROR);
     return WS_MSG_STATE_ERROR;
   }
 
   if((wsConnectionDesc->wsType != WS_TYPE_SERVER) == header->masked)
   {
-    log_err("mask bit wrong");
+    ezwebsocket_log(EZLOG_ERROR, "mask bit wrong\n");
     websocket_closeConnection(wsConnectionDesc, WS_CLOSE_CODE_PROTOCOL_ERROR);
     return WS_MSG_STATE_ERROR;
   }
@@ -860,7 +853,7 @@ static enum ws_msg_state handleContMessage(struct websocket_connection_desc *wsC
       temp = refcnt_allocate(wsConnectionDesc->lastMessage.len + header->payloadLength, NULL);
       if(!temp)
       {
-        log_err("refcnt_allocate failed dropping message");
+        ezwebsocket_log(EZLOG_ERROR, "refcnt_allocate failed dropping message\n");
         free(wsConnectionDesc->lastMessage.data);
         wsConnectionDesc->lastMessage.data = NULL;
         return WS_MSG_STATE_ERROR;
@@ -874,7 +867,7 @@ static enum ws_msg_state handleContMessage(struct websocket_connection_desc *wsC
       temp = realloc(wsConnectionDesc->lastMessage.data, wsConnectionDesc->lastMessage.len + header->payloadLength);
       if(!temp)
       {
-        log_err("realloc failed dropping message");
+        ezwebsocket_log(EZLOG_ERROR, "realloc failed dropping message\n");
         free(wsConnectionDesc->lastMessage.data);
         wsConnectionDesc->lastMessage.data = NULL;
         return WS_MSG_STATE_ERROR;
@@ -905,7 +898,7 @@ static enum ws_msg_state handleContMessage(struct websocket_connection_desc *wsC
         &wsConnectionDesc->lastMessage.utf8Handle);
     if((header->fin && state != UTF8_STATE_OK) || (!header->fin && state == UTF8_STATE_FAIL))
     {
-      log_err("no valid utf8 string closing connection");
+      ezwebsocket_log(EZLOG_ERROR, "no valid utf8 string closing connection\n");
       websocket_closeConnection(wsConnectionDesc, WS_CLOSE_CODE_INVALID_DATA);
       return WS_MSG_STATE_ERROR;
     }
@@ -949,7 +942,7 @@ static enum ws_msg_state handlePingMessage(struct websocket_connection_desc *wsC
         temp = malloc(header->payloadLength);
         if(!temp)
         {
-          log_err("malloc failed dropping message");
+          ezwebsocket_log(EZLOG_ERROR, "malloc failed dropping message\n");
           return WS_MSG_STATE_ERROR;
         }
 
@@ -970,6 +963,7 @@ static enum ws_msg_state handlePingMessage(struct websocket_connection_desc *wsC
     }
     else
     {
+      ezwebsocket_log(EZLOG_INFO, "SEND PONG MSG\n");
       if(sendDataLowLevel(wsConnectionDesc, WS_OPCODE_PONG, true, masked, &data[header->payloadStartOffset],
           header->payloadLength) == 0)
         return WS_MSG_STATE_NO_USER_DATA;
@@ -1000,6 +994,7 @@ static enum ws_msg_state handlePongMessage(struct websocket_connection_desc *wsC
 
   if(header->fin && (header->payloadLength <= MAX_DEFAULT_PAYLOAD_LENGTH))
   {
+    ezwebsocket_log(EZLOG_WARNING, "PONG msg is not handled\n");
     //Pongs are ignored now because actually we also don't send pings
     return WS_MSG_STATE_NO_USER_DATA;
   }
@@ -1075,6 +1070,7 @@ static enum ws_msg_state handleDisconnectMessage(struct websocket_connection_des
       if((header->payloadLength == 2)
           || utf8_validate((char*)&data[header->payloadStartOffset + 2], header->payloadLength - 2, &utf8Handle))
       {
+        ezwebsocket_log(EZLOG_INFO, "SEND DISCONNECT\n");
         if(sendDataLowLevel(wsConnectionDesc, WS_OPCODE_DISCONNECT, true, masked, &data[header->payloadStartOffset],
             header->payloadLength) == 0)
           rc = WS_MSG_STATE_NO_USER_DATA;
@@ -1106,6 +1102,32 @@ static enum ws_msg_state handleDisconnectMessage(struct websocket_connection_des
   }
 }
 
+const char *opcode2str(int op_code)
+{
+  switch(op_code)
+  {
+    case WS_OPCODE_TEXT:
+	    return "WS_OPCODE_TEXT";
+	    break;
+    case WS_OPCODE_BINARY:
+	    return "WS_OPCODE_BINARY";
+	    break;
+    case WS_OPCODE_CONTINUATION:
+    return "WS_OPCODE_CONTINUATION";
+      break;
+    case WS_OPCODE_PING:
+      return "WS_OPCODE_PING";
+      break;
+    case WS_OPCODE_PONG:
+      return "WS_OPCODE_PONG";
+      break;
+    case WS_OPCODE_DISCONNECT:
+      return "WS_OPCODE_DISCONNECT";
+      break;
+  }
+    return "unknown op code";
+}
+
 /**
  * \brief parses a message and stores it to the client descriptor
  *
@@ -1121,9 +1143,7 @@ static enum ws_msg_state parseMessage(struct websocket_connection_desc *wsConnec
 {
   enum ws_msg_state rc;
 
-#ifdef VERBOSE_MODE
-  log_dbg("->len:%zu", len);
-#endif
+  ezwebsocket_log(EZLOG_DEBUG, "->len:%zu opcode: %d == %s\n", len, header->opcode, opcode2str(header->opcode));
 
   if(len < header->payloadStartOffset + header->payloadLength)
     return WS_MSG_STATE_INCOMPLETE;
@@ -1147,7 +1167,7 @@ static enum ws_msg_state parseMessage(struct websocket_connection_desc *wsConnec
       return handleDisconnectMessage(wsConnectionDesc, data, header);
 
     default:
-      log_err("unknown opcode (%d)", header->opcode);
+      ezwebsocket_log(EZLOG_ERROR, "unknown opcode (%d)\n", header->opcode);
       rc = WS_MSG_STATE_ERROR;
       break;
   }
@@ -1187,13 +1207,13 @@ static void* websocketServer_onOpen(void *socketUserData, struct socket_connecti
 
   if(wsDesc == NULL)
   {
-    log_err("%s(): wsDesc must not be NULL!", __func__);
+    ezwebsocket_log(EZLOG_ERROR, "%s(): wsDesc must not be NULL!\n", __func__);
     return NULL;
   }
 
   if(socketConnectionDesc == NULL)
   {
-    log_err("%s(): socketClientDesc must not be NULL!", __func__);
+    ezwebsocket_log(EZLOG_ERROR, "%s(): socketClientDesc must not be NULL!\n", __func__);
     return NULL;
   }
 
@@ -1288,7 +1308,7 @@ static void websocket_onClose(void *socketUserData, void *socketConnectionDesc, 
 
   if(wsConnectionDesc == NULL)
   {
-    log_err("%s(): wsConnectionDesc must not be NULL!", __func__);
+    ezwebsocket_log(EZLOG_ERROR, "%s(): wsConnectionDesc must not be NULL!\n", __func__);
     return;
   }
 
@@ -1370,13 +1390,13 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
 
   if(wsConnectionDesc == NULL)
   {
-    log_err("%s(): wsConnectionDesc must not be NULL!", __func__);
+    ezwebsocket_log(EZLOG_ERROR, "%s(): wsConnectionDesc must not be NULL!\n", __func__);
     return 0;
   }
 
   if(socketConnectionDesc == NULL)
   {
-    log_err("%s(): socketConnectionDesc must not be NULL!", __func__);
+    ezwebsocket_log(EZLOG_ERROR, "%s(): socketConnectionDesc must not be NULL!\n", __func__);
     return 0;
   }
 
@@ -1393,13 +1413,11 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
             replyKey = calculateSecWebSocketAccept(key);
             if(replyKey == NULL)
             {
-              log_err("%s(): calculateSecWebSocketAccept failed!", __func__);
+              ezwebsocket_log(EZLOG_ERROR, "%s(): calculateSecWebSocketAccept failed!\n", __func__);
               return 0;
             }
 
-#ifdef VERBOSE_MODE
-                  log_dbg("%s() replyKey:%s", __func__, replyKey);
-#endif
+            ezwebsocket_log(EZLOG_DEBUG, "%s() replyKey:%s\n", __func__, replyKey);
 
             sendWsHandshakeReply(socketConnectionDesc, replyKey);
 
@@ -1413,7 +1431,7 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
           }
           else
           {
-            log_err("parseHttpHeader failed");
+            ezwebsocket_log(EZLOG_ERROR, "parseHttpHeader failed\n");
           }
           break;
 
@@ -1431,7 +1449,7 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
           }
           else
           {
-            log_err("checkWsHandshakeReply failed");
+            ezwebsocket_log(EZLOG_ERROR, "checkWsHandshakeReply failed\n");
           }
           break;
       }
@@ -1441,7 +1459,7 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
       switch(parseWebsocketHeader(msg, len, &wsHeader))
       {
         case -1:
-          log_err("couldn't parse header");
+          ezwebsocket_log(EZLOG_ERROR, "couldn't parse header\n");
           websocket_closeConnection(wsConnectionDesc, WS_CLOSE_CODE_PROTOCOL_ERROR);
           return len;
 
@@ -1452,9 +1470,7 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
         case 1:
           break;
       }
-#ifdef VERBOSE_MODE
       printWsHeader(&wsHeader);
-#endif
 
       switch(parseMessage(wsConnectionDesc, msg, len, &wsHeader))
       {
@@ -1489,7 +1505,7 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
             wsConnectionDesc->lastMessage.complete = 0;
             wsConnectionDesc->timeout.tv_sec = 0;
             wsConnectionDesc->timeout.tv_nsec = 0;
-            log_err("message timeout");
+            ezwebsocket_log(EZLOG_ERROR, "message timeout");
             return len;
           }
           return 0;
@@ -1507,13 +1523,13 @@ static size_t websocket_onMessage(void *socketUserData, void *socketConnectionDe
           return len;
 
         default:
-          log_err("unexpected return value");
+          ezwebsocket_log(EZLOG_ERROR, "unexpected return value\n");
           return len;
       }
       break;
 
     case WS_STATE_CLOSED:
-      log_err("websocket closed ignoring message");
+      ezwebsocket_log(EZLOG_ERROR, "websocket closed ignoring message\n");
       return len;
 
     default:
@@ -1590,7 +1606,7 @@ int websocket_sendData(struct websocket_connection_desc *wsConnectionDesc, enum 
       break;
 
     default:
-      log_err("unknown data type");
+      ezwebsocket_log(EZLOG_ERROR, "unknown data type\n");
       return -1;
   }
 
@@ -1629,7 +1645,7 @@ int websocket_sendDataFragmentedStart(struct websocket_connection_desc *wsConnec
       break;
 
     default:
-      log_err("unknown data type");
+      ezwebsocket_log(EZLOG_ERROR, "unknown data type\n");
       return -1;
   }
 
@@ -1726,7 +1742,7 @@ struct websocket_server_desc *websocketServer_open(struct websocket_server_init 
   wsDesc = refcnt_allocate(sizeof(struct websocket_server_desc), NULL);
   if(!wsDesc)
   {
-    log_err("refcnt_allocate failed");
+    ezwebsocket_log(EZLOG_ERROR, "refcnt_allocate failed\n");
     return NULL;
   }
   memset(wsDesc, 0, sizeof(struct websocket_server_desc));
@@ -1746,7 +1762,7 @@ struct websocket_server_desc *websocketServer_open(struct websocket_server_init 
   wsDesc->socketDesc = socketServer_open(&socketInit, wsDesc);
   if(!wsDesc->socketDesc)
   {
-    log_err("socketServer_open failed");
+    ezwebsocket_log(EZLOG_ERROR, "socketServer_open failed\n");
     refcnt_unref(wsDesc);
     return NULL;
   }
@@ -1815,26 +1831,26 @@ struct websocket_connection_desc *websocketClient_open(struct websocket_client_i
   wsConnection->wsDesc.wsClientDesc->address = strdup(wsInit->address);
   if(wsConnection->wsDesc.wsClientDesc->address == NULL)
   {
-    log_err("strdup failed");
+    ezwebsocket_log(EZLOG_ERROR, "strdup failed\n");
     goto ERROR;
   }
   wsConnection->wsDesc.wsClientDesc->port = strdup(wsInit->port);
   if(wsConnection->wsDesc.wsClientDesc->port == NULL)
   {
-    log_err("strdup failed");
+    ezwebsocket_log(EZLOG_ERROR, "strdup failed\n");
     goto ERROR;
   }
   wsConnection->wsDesc.wsClientDesc->endpoint = strdup(wsInit->endpoint);
   if(wsConnection->wsDesc.wsClientDesc->endpoint == NULL)
   {
-    log_err("strdup failed");
+    ezwebsocket_log(EZLOG_ERROR, "strdup failed\n");
     goto ERROR;
   }
 
   uint32_t tempPort = strtoul(wsInit->port, NULL, 10);
   if((tempPort == 0) || (tempPort > USHRT_MAX))
   {
-      log_err("port outside allowed range");
+      ezwebsocket_log(EZLOG_ERROR, "port outside allowed range\n");
       goto ERROR;
   }
 
@@ -1852,7 +1868,7 @@ struct websocket_connection_desc *websocketClient_open(struct websocket_client_i
   wsConnection->socketClientDesc = socketClient_open(&socketInit, wsConnection);
   if(!wsConnection->socketClientDesc)
   {
-    log_err("socketClient_open failed");
+    ezwebsocket_log(EZLOG_ERROR, "socketClient_open failed\n");
     goto ERROR;
   }
 
@@ -1908,6 +1924,7 @@ bool websocketConnection_isConnected(struct websocket_connection_desc *wsConnect
   if(!wsConnectionDesc)
     return false;
 
+  ezwebsocket_log(EZLOG_INFO, "connection state: %d\n", wsConnectionDesc->state);
   return (wsConnectionDesc->state != WS_STATE_CLOSED);
 }
 
@@ -1953,7 +1970,7 @@ void *websocket_open(struct websocket_init *wsInit, void *websocketUserData)
   wsDesc = refcnt_allocate(sizeof(struct websocket_server_desc), NULL);
   if(!wsDesc)
   {
-    log_err("refcnt_allocate failed");
+    ezwebsocket_log(EZLOG_ERROR, "refcnt_allocate failed\n");
     return NULL;
   }
   memset(wsDesc, 0, sizeof(struct websocket_server_desc));
@@ -1974,7 +1991,7 @@ void *websocket_open(struct websocket_init *wsInit, void *websocketUserData)
   wsDesc->socketDesc = socketServer_open(&socketInit, wsDesc);
   if(!wsDesc->socketDesc)
   {
-    log_err("socketServer_open failed");
+    ezwebsocket_log(EZLOG_ERROR, "socketServer_open failed\n");
     refcnt_unref(wsDesc);
     return NULL;
   }

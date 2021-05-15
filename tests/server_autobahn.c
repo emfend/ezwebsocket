@@ -7,7 +7,7 @@
  */
 #include <stdio.h>
 #include <unistd.h>
-#include <websocket.h>
+#include <ezwebsocket.h>
 #include <stdlib.h>
 #include <signal.h>
 

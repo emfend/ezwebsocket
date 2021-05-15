@@ -2,18 +2,14 @@ project('ezwebsocket', 'c',
     version : '2.1.0',
     meson_version: '>= 0.50.0',
     license : 'MIT',
-    default_options : [ 'c_std=gnu11' ])
+    default_options : [ 'c_std=gnu99' ])
 
-#+CFLAGS="-std=gnu11 -fPIC -Wall -Wextra -Wpedantic -O3"
+cc = meson.get_compiler('c')
 
 pkg = import('pkgconfig')
 config_h = configuration_data()
 
 dep_threads = dependency('threads')
-
-deps_libezwebsocket = [
-    dependency('threads'),
-]
 
 if get_option('openssl').enabled()
   dep_ssl = dependency('openssl', version: '>=1.1.0', required: true)

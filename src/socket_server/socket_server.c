@@ -18,10 +18,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdbool.h>
-#include "../utils/dyn_buffer.h"
-#include "../utils/ref_count.h"
+#include "utils/dyn_buffer.h"
+#include "utils/ref_count.h"
 #include <errno.h>
-#include "../utils/log.h"
+#include <ezwebsocket_log.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 
@@ -121,7 +121,7 @@ static int addConnection(struct socket_server_desc *socketDesc, struct socket_co
   listElement = malloc(sizeof(struct socket_connection_list_element));
   if(!listElement)
   {
-    log_err("malloc failed");
+    ezwebsocket_log(EZLOG_ERROR, "malloc failed\n");
     return -1;
   }
 
@@ -313,7 +313,7 @@ static int startConnection(int socketFd, struct socket_server_desc *socketDesc)
   desc = refcnt_allocate(sizeof(struct socket_connection_desc), NULL);
   if(!desc)
   {
-    log_err("refcnt_allocate failed");
+    ezwebsocket_log(EZLOG_ERROR, "refcnt_allocate failed\n");
     return -1;
   }
 
@@ -322,12 +322,12 @@ static int startConnection(int socketFd, struct socket_server_desc *socketDesc)
   if(!getsockname(socketFd, (struct sockaddr *) &sock_addr, &sock_addr_len))
     snprintf(desc->server_ip, sizeof(desc->server_ip), "%d.%d.%d.%d", FMT_IP(htonl(sock_addr.sin_addr.s_addr)));
   else
-    log_err("error getsockname");
+    ezwebsocket_log(EZLOG_ERROR, "error getsockname\n");
 
   if(!getpeername(socketFd, (struct sockaddr *) &sock_addr, &sock_addr_len))
     snprintf(desc->peer_ip, sizeof(desc->peer_ip), "%d.%d.%d.%d", FMT_IP(htonl(sock_addr.sin_addr.s_addr)));
   else
-    log_err("error getpeername");
+    ezwebsocket_log(EZLOG_ERROR, "error getpeername\n");
 
   desc->connectionSocketFd = socketFd;
   desc->socketDesc = socketDesc;
@@ -339,7 +339,7 @@ static int startConnection(int socketFd, struct socket_server_desc *socketDesc)
 
   if(pthread_create(&desc->tid, NULL, connectionThread, desc) != 0)
   {
-    log_err("pthread_create failed");
+    ezwebsocket_log(EZLOG_ERROR, "pthread_create failed\n");
     refcnt_unref(desc);
     return -1;
   }
@@ -377,7 +377,7 @@ int socketServer_send(struct socket_connection_desc *connectionDesc, void *msg, 
   rc = send(connectionDesc->connectionSocketFd, msg, len, MSG_NOSIGNAL);
   if(rc == -1)
   {
-    log_err("send failed: %s", strerror(errno));
+    ezwebsocket_log(EZLOG_ERROR, "send failed: %s\n", strerror(errno));
   }
   return ((size_t)rc == len ? 0 : -1);
 }
@@ -413,7 +413,7 @@ static void *socketServerThread(void *sockDesc)
     res = select(socketDesc->socketFd + 1, &socketDesc->readfds, NULL, NULL, &timeout);
     if(res < 0)
     {
-      log_err("ERROR in select");
+      ezwebsocket_log(EZLOG_ERROR, "ERROR in select\n");
     }
 
     if(res > 0)
@@ -424,10 +424,10 @@ static void *socketServerThread(void *sockDesc)
         //wait for connection requests
         socketChildFd = accept(socketDesc->socketFd, (struct sockaddr *) &connectionAddr, &connectionAddrLen);
         if(socketChildFd < 0)
-          log_err("ERROR on accept");
+          ezwebsocket_log(EZLOG_ERROR, "ERROR on accept\n");
 
         if(startConnection(socketChildFd, socketDesc) < 0)
-          log_err("startConnection failed");
+          ezwebsocket_log(EZLOG_ERROR, "startConnection failed\n");
       }
     }
   }
@@ -455,14 +455,14 @@ struct socket_server_desc *socketServer_open(struct socket_server_init *socketIn
 
   if(getaddrinfo(socketInit->address, socketInit->port, &hints, &serverinfo) != 0)
   {
-    log_err("getaddrinfo failed");
+    ezwebsocket_log(EZLOG_ERROR, "getaddrinfo failed\n");
     return NULL;
   }
 
   socketDesc = malloc(sizeof(struct socket_server_desc));
   if(!socketDesc)
   {
-    log_err("malloc failed");
+    ezwebsocket_log(EZLOG_ERROR, "malloc failed\n");
     return NULL;
   }
 
@@ -478,43 +478,43 @@ struct socket_server_desc *socketServer_open(struct socket_server_init *socketIn
   {
     if((socketDesc->socketFd = socket(iter->ai_family, iter->ai_socktype, iter->ai_protocol)) < 0)
     {
-      log_err("socket failed");
+      ezwebsocket_log(EZLOG_ERROR, "socket failed\n");
       continue;
     }
 
     optval = 1;
     if(setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
     {
-      log_err("setsockopt SO_REUSEADDR failed");
+      ezwebsocket_log(EZLOG_ERROR, "setsockopt SO_REUSEADDR failed\n");
     }
 
     optval = 1;
     if(setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0)
     {
-      log_err("setsockopt SO_KEEPALIVE failed");
+      ezwebsocket_log(EZLOG_ERROR, "setsockopt SO_KEEPALIVE failed\n");
     }
 
     optval = 180;
     if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval)) < 0)
     {
-      log_err("setsockopt TCP_KEEPIDLE failed");
+      ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPIDLE failed\n");
     }
 
     optval = 3;
     if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval)) < 0)
     {
-      log_err("setsockopt TCP_KEEPCNT failed");
+      ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPCNT failed\n");
     }
 
     optval = 10;
     if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval)) < 0)
     {
-      log_err("setsockopt TCP_KEEPINTVL failed");
+      ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPINTVL failed\n");
     }
 
     if(bind(socketDesc->socketFd, iter->ai_addr, iter->ai_addrlen) == -1)
     {
-      log_err("bind");
+      ezwebsocket_log(EZLOG_ERROR, "%s(): bind\n", __func__);
       close(socketDesc->socketFd);
       continue;
     }
@@ -523,7 +523,7 @@ struct socket_server_desc *socketServer_open(struct socket_server_init *socketIn
 
   if (iter == NULL)
   {
-    log_err("Failed to bind to address and port");
+    ezwebsocket_log(EZLOG_ERROR, "Failed to bind to address and port\n");
     freeaddrinfo(serverinfo);
     free(socketDesc);
     return NULL;
@@ -533,7 +533,7 @@ struct socket_server_desc *socketServer_open(struct socket_server_init *socketIn
 
   //wait for connections allow up to 10 connections in queue
   if(listen(socketDesc->socketFd, 10) < 0)
-    log_err("listen failed");
+    ezwebsocket_log(EZLOG_ERROR, "listen failed\n");
 
   socketDesc->running = true;
 
@@ -553,7 +553,7 @@ void socketServer_close(struct socket_server_desc *socketDesc)
   if(socketDesc == NULL)
       return;
 
-  log_dbg("stopping socket server.\n");
+  ezwebsocket_log(EZLOG_DEBUG, "stopping socket server.\n");
   closeAllConnections(socketDesc);
   socketDesc->running = false;
   pthread_join(socketDesc->tid, NULL);

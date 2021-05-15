@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "log.h"
+#include <ezwebsocket_log.h>
 
 //! mapping that is used for base64 conversion
 static const char base64_table[64] =
@@ -63,7 +63,7 @@ char *base64_encode(unsigned char *data, size_t len)
 
   if(!encString)
   {
-    log_err("malloc failed");
+    ezwebsocket_log(EZLOG_ERROR, "malloc failed\n");
     return NULL;
   }
   ptr = encString;

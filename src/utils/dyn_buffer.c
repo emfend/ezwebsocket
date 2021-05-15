@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "log.h"
+#include <ezwebsocket_log.h>
 
 
 /**
@@ -43,7 +43,7 @@ int dynBuffer_increase_to(struct dyn_buffer *buffer, size_t numFreeBytes)
     buffer->buffer = malloc(numFreeBytes);
     if(!buffer->buffer)
     {
-      log_err("malloc failed");
+      ezwebsocket_log(EZLOG_ERROR, "malloc failed\n");
       return -1;
     }
 
@@ -64,7 +64,7 @@ int dynBuffer_increase_to(struct dyn_buffer *buffer, size_t numFreeBytes)
         buffer->buffer = NULL;
         buffer->size = 0;
         buffer->used = 0;
-        log_err("realloc failed");
+        ezwebsocket_log(EZLOG_ERROR, "realloc failed\n");
         return -1;
       }
 
@@ -86,7 +86,7 @@ int dynBuffer_removeLeadingBytes(struct dyn_buffer *buffer, size_t count)
 {
   if(buffer->buffer == NULL)
   {
-    log_err("empty buffer");
+    ezwebsocket_log(EZLOG_ERROR, "empty buffer\n");
     return -1;
   }
 
@@ -95,7 +95,7 @@ int dynBuffer_removeLeadingBytes(struct dyn_buffer *buffer, size_t count)
 
   if(buffer->used < count)
   {
-    log_err("not enough bytes in buffer");
+    ezwebsocket_log(EZLOG_ERROR, "not enough bytes in buffer\n");
     return -1;
   }
 

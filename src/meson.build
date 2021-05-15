@@ -27,6 +27,12 @@ deps_websocket = [
   dep_ssl,
 ]
 
+if get_option('syslog').enabled()
+  if cc.has_header('syslog.h')
+    config_h.set('HAVE_SYSLOG_H', '1')
+  endif
+endif
+
 libezwebsocket = shared_library(
     'ezwebsocket',
     srcs_websocket,
