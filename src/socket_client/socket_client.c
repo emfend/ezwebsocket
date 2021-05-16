@@ -7,6 +7,8 @@
  *
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -68,6 +70,10 @@ struct socket_client_desc
   volatile bool taskRunning;
   //! init done signal
   pthread_mutex_t initDoneSignal;
+#ifdef HAVE_OPENSSL
+  SSL_CTX *ssl_ctx;
+  SSL *ssl;
+#endif
 };
 
 /**
@@ -115,6 +121,11 @@ static void* socketClientThread(void *socketDescriptor)
             bytesFree = DYNBUFFER_BYTES_FREE(&socketDesc->buffer);
             increase++;
           }
+	  #ifdef HAVE_OPENSSL
+          if(socketDesc->ssl)
+            n = SSL_read(socketDesc->ssl, DYNBUFFER_WRITE_POS(&(socketDesc->buffer)), bytesFree);
+	  else
+          #endif /* HAVE_OPENSSL */
           n = recv(socketDesc->socketFd, DYNBUFFER_WRITE_POS(&(socketDesc->buffer)), bytesFree,
           MSG_DONTWAIT);
           if(first && (n == 0))
@@ -175,6 +186,12 @@ int socketClient_send(void *socketDescriptor, void *msg, size_t len)
 
   if(socketDesc->state != SOCKET_CLIENT_STATE_CONNECTED)
     return -1;
+
+  #ifdef HAVE_OPENSSL
+  if(socketDesc->ssl)
+     rc = SSL_write(socketDesc->ssl, msg, len);
+  else
+  #endif /* HAVE_OPENSSL */
   rc = send(socketDesc->socketFd, msg, len, MSG_NOSIGNAL);
   if(rc == -1)
   {
@@ -281,6 +298,23 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   {
     ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPINTVL failed\n");
   }
+
+  #ifdef HAVE_OPENSSL
+  if(socketInit->secure)
+  {
+    ezwebsocket_log(EZLOG_DEBUG, "use secure websocket\n");
+    socketDesc->ssl_ctx = SSL_CTX_new(SSLv23_method());
+    socketDesc->ssl = SSL_new(socketDesc->ssl_ctx);
+    SSL_set_fd(socketDesc->ssl, socketDesc->socketFd);
+    SSL_connect(socketDesc->ssl);
+  }
+  #else
+  if(socketInit->secure)
+  {
+    ezwebsocket_log(EZLOG_ERROR, "openssl not compiled in - cannot use secure websocket");
+    abort();
+  }
+  #endif /* HAVE_OPENSSL */
 
   socketDesc->state = SOCKET_CLIENT_STATE_CONNECTED;
   socketDesc->taskRunning = true;

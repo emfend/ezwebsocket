@@ -112,6 +112,7 @@ struct websocket_client_init
   int keep_cnt;
   //! The frequency of keepalive packets after the first one is sent
   int keep_intvl;
+  int secure;
 };
 
 //! structure to configure a websocket server socket

@@ -33,6 +33,7 @@ struct socket_client_init
   int keep_cnt;
   //! The frequency of keepalive packets after the first one is sent
   int keep_intvl;
+  int secure;
 };
 
 int socketClient_send(void *socketDescriptor, void *msg, size_t len);

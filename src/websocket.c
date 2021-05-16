@@ -1859,7 +1859,7 @@ struct websocket_connection_desc *websocketClient_open(struct websocket_client_i
   socketInit.keep_idle_sec = wsInit->keep_idle_sec;
   socketInit.keep_cnt = wsInit->keep_cnt;
   socketInit.keep_intvl = wsInit->keep_intvl;
-
+  socketInit.secure = wsInit->secure;
   socketInit.address = wsInit->address;
   socketInit.socket_onOpen = websocketClient_onOpen;
   socketInit.socket_onClose = websocket_onClose;
