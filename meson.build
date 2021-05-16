@@ -18,14 +18,14 @@ else
   dep_ssl = []
 endif
 
-inc_public = include_directories('inc')
+inc_public = include_directories('include')
 inc_common = [ include_directories('.'), inc_public ]
 
-subdir('inc')
-subdir('src')
+subdir('include')
+subdir('lib')
 
 if get_option('examples').enabled()
-  subdir('tests')
+  subdir('examples')
 endif
 
 configure_file(output: 'config.h', configuration: config_h)

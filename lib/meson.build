@@ -8,7 +8,7 @@ srcs_websocket = [
   'utils/utf8.c',
   'socket_client/socket_client.c',
   'socket_server/socket_server.c',
-  'websocket.c',
+  'ezwebsocket.c',
 ]
 
 inc_websocket = [
