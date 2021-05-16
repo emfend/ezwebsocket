@@ -28,3 +28,23 @@ executable(
   include_directories: inc_public,
   install: false
 )
+
+executable(
+  'client_chat',
+  'client_chat.c',
+  dependencies: [
+		   dep_libezwebsocket,
+		],
+  include_directories: inc_public,
+  install: false
+)
+
+executable(
+  'server_chat',
+  'server_chat.c',
+  dependencies: [
+		   dep_libezwebsocket,
+		],
+  include_directories: inc_public,
+  install: false
+)
