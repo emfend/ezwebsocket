@@ -1,7 +1,7 @@
 # Common options, automatically inherited by subprojects
 
 option('openssl', type : 'feature', value : 'disabled', description : 'Enable Openssl support for Secure Websockets')
-option('debug', type : 'boolean', value : 'false', description : 'Enable Debug output')
+option('syslog', type : 'feature', value : 'disabled', description : 'Enable log to syslog')
 option('examples', type : 'feature', value : 'enabled', description : 'Build examples')
 
 
