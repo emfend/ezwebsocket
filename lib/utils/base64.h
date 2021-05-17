@@ -25,7 +25,7 @@
 #ifndef UTILS_BASE64_H_
 #define UTILS_BASE64_H_
 
-char *base64_encode(unsigned char *data, size_t len);
-
+char *
+base64_encode(unsigned char *data, size_t len);
 
 #endif /* UTILS_BASE64_H_ */

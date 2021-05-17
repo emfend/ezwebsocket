@@ -33,12 +33,12 @@ struct socket_connection_desc;
 struct socket_server_desc;
 
 //! structure with data needed to create a socket server
-struct socket_server_init
-{
+struct socket_server_init {
   //! callback that is called when data is received
-  size_t (*socket_onMessage)(void *socketUserData, void *connectionDesc, void *connectionUserData, void *msg, size_t len);
+  size_t (*socket_onMessage)(void *socketUserData, void *connectionDesc, void *connectionUserData,
+                             void *msg, size_t len);
   //! callback that is called when a new connection is established
-  void* (*socket_onOpen)(void *socketUserData, struct socket_connection_desc *connectionDesc);
+  void *(*socket_onOpen)(void *socketUserData, struct socket_connection_desc *connectionDesc);
   //! callback that is called when a connection is closed
   void (*socket_onClose)(void *socketUserData, void *connectionDesc, void *connectionUserData);
   //! the listening port as string
@@ -47,11 +47,17 @@ struct socket_server_init
   const char *address;
 };
 
-void socketServer_closeConnection(struct socket_connection_desc *socketConnectionDesc);
-int socketServer_send(struct socket_connection_desc *connectionDesc, void *msg, size_t len);
-struct socket_server_desc *socketServer_open(struct socket_server_init *socketInit, void *socketUserData);
-void socketServer_close(struct socket_server_desc *socketDesc);
+void
+socketServer_closeConnection(struct socket_connection_desc *socketConnectionDesc);
+int
+socketServer_send(struct socket_connection_desc *connectionDesc, void *msg, size_t len);
+struct socket_server_desc *
+socketServer_open(struct socket_server_init *socketInit, void *socketUserData);
+void
+socketServer_close(struct socket_server_desc *socketDesc);
 
-const char *socket_get_server_ip(struct socket_connection_desc *desc);
-const char *socket_get_peer_ip(struct socket_connection_desc *desc);
+const char *
+socket_get_server_ip(struct socket_connection_desc *desc);
+const char *
+socket_get_peer_ip(struct socket_connection_desc *desc);
 #endif /* SOCKET_SERVER_H_ */
