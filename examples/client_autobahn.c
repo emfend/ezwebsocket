@@ -56,7 +56,6 @@ void runTest(void)
 
   websocketInit.port = "9001";
   websocketInit.address = "127.0.0.1";
-  websocketInit.hostname = "arc";
   websocketInit.ws_onOpen = onOpen;
   websocketInit.ws_onClose = onClose;
   websocketInit.ws_onMessage = onMessage;
