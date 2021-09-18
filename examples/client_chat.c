@@ -58,21 +58,16 @@ void runTest(void)
 {
   struct websocket_client_init websocketInit = { 0 };
   struct websocket_connection_desc *wsConnectionDesc;
-  //char *msg = "test";
   char msg[4] = { 0x08, 0xCB, 0x00, 0x00 };
   
 
   int i = 12, rc = 0;
 
-  //websocketInit.port = "5000";
   websocketInit.port = "443";
   websocketInit.address = "192.168.200.12";
-  //websocketInit.address = "20.52.121.234";
-  websocketInit.hostname = "arc";
   websocketInit.ws_onOpen = onOpen;
   websocketInit.ws_onClose = onClose;
   websocketInit.ws_onMessage = onMessage;
- // websocketInit.endpoint = strdup("/ws");;
   websocketInit.endpoint = strdup("/xxx");;
   websocketInit.keepalive = true;
   websocketInit.keep_idle_sec = 10;
@@ -85,7 +80,6 @@ void runTest(void)
   {
       if(i-- < 0)
       {
-    //    rc = websocket_sendData(wsConnectionDesc, WS_DATA_TYPE_TEXT, msg, strlen(msg));
         rc = websocket_sendData(wsConnectionDesc, WS_DATA_TYPE_BINARY, msg, sizeof(msg));
 	i = 12;
       }

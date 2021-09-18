@@ -115,8 +115,6 @@ struct websocket_client_init
   const char *address;
   //! the port of the remote target
   const char *port;
-  //! the hostname that should be used
-  const char *hostname;
   //! the endpoint of the remote (e.g. /chat)
   const char *endpoint;
     //! Enable or disable keepalive
