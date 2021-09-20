@@ -1373,7 +1373,7 @@ static void callOnMessage(struct websocket_connection_desc *wsConnectionDesc)
     {
       if(wsConnectionDesc->wsDesc.wsClientDesc->ws_onMessage)
       {
-        wsConnectionDesc->wsDesc.wsClientDesc->ws_onMessage(wsConnectionDesc->wsDesc.wsServerDesc->wsSocketUserData,
+        wsConnectionDesc->wsDesc.wsClientDesc->ws_onMessage(wsConnectionDesc->wsDesc.wsClientDesc->wsUserData,
             wsConnectionDesc, wsConnectionDesc->connectionUserData, wsConnectionDesc->lastMessage.dataType,
             wsConnectionDesc->lastMessage.data, wsConnectionDesc->lastMessage.len);
       }
