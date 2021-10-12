@@ -1,5 +1,5 @@
 project('ezwebsocket', 'c',
-    version : '2.1.0',
+    version : '2.1.1',
     meson_version: '>= 0.50.0',
     license : 'MIT',
     default_options : [ 'c_std=gnu99' ])
