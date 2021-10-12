@@ -1,0 +1,27 @@
+BasedOnStyle: LLVM
+AlignConsecutiveMacros: AcrossEmptyLinesAndComments
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AlwaysBreakAfterReturnType: All
+BreakBeforeBraces: Linux
+BreakStringLiterals: false
+ContinuationIndentWidth: 2
+Cpp11BracedListStyle: false
+IndentWidth: 2
+PenaltyBreakAssignment: 1000
+PenaltyBreakBeforeFirstCallParameter: 1000
+PointerAlignment: Right
+# Reflow comments breaks some HTML tags in doc comments
+ReflowComments: true
+# Not sure about SpaceAfterCStyleCast, some files use it others don't
+SpaceAfterCStyleCast: true
+# TODO-clang-12: SortIncludes: Never
+SpaceBeforeParens: ControlStatementsExceptForEachMacros
+# TODO-clang-12: SpaceAroundPointerQualifiers: Before
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 100

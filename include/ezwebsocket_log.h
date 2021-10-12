@@ -26,24 +26,32 @@
 #ifndef UTILS_LOG_H_
 #define UTILS_LOG_H_
 
-#include <stdbool.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
-enum ezwebsocket_log_level
-{
+enum ezwebsocket_log_level {
   EZLOG_ERROR,
   EZLOG_WARNING,
   EZLOG_INFO,
   EZLOG_DEBUG,
 };
 
-typedef int (*ezwebsocket_log_func_t)(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp);
+typedef int (*ezwebsocket_log_func_t)(enum ezwebsocket_log_level log_level, const char *fmt,
+                                      va_list argp);
 
-void ezwebsocket_log_set_handler(ezwebsocket_log_func_t log, ezwebsocket_log_func_t cont);
-void ezwebsocket_set_level(enum ezwebsocket_log_level level);
-int ezwebsocket_vlog(enum ezwebsocket_log_level log_level, const char *fmt, va_list ap);
-int ezwebsocket_vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp);
-int ezwebsocket_log(enum ezwebsocket_log_level log_level, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
-int ezwebsocket_log_continue(enum ezwebsocket_log_level log_level, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+void
+ezwebsocket_log_set_handler(ezwebsocket_log_func_t log, ezwebsocket_log_func_t cont);
+void
+ezwebsocket_set_level(enum ezwebsocket_log_level level);
+int
+ezwebsocket_vlog(enum ezwebsocket_log_level log_level, const char *fmt, va_list ap);
+int
+ezwebsocket_vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp);
+int
+ezwebsocket_log(enum ezwebsocket_log_level log_level, const char *fmt, ...)
+  __attribute__((format(printf, 2, 3)));
+int
+ezwebsocket_log_continue(enum ezwebsocket_log_level log_level, const char *fmt, ...)
+  __attribute__((format(printf, 2, 3)));
 
 #endif /* UTILS_LOG_H_ */

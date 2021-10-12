@@ -22,23 +22,18 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <ezwebsocket_log.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 //! mapping that is used for base64 conversion
-static const char base64_table[64] =
-{
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-  'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-  'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-  'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-  'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-  'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-  'w', 'x', 'y', 'z', '0', '1', '2', '3',
-  '4', '5', '6', '7', '8', '9', '+', '/'
-};
+static const char base64_table[64] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                                       'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+                                       'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+                                       'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+                                       's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2',
+                                       '3', '4', '5', '6', '7', '8', '9', '+', '/' };
 
 /**
  * \brief encodes the given 3 bytes to wrBuffer
@@ -49,7 +44,8 @@ static const char base64_table[64] =
  * \param [out] wrBuffer Pointer to where the data is written (size must be at least 4 bytes)
  *
  */
-static inline void encode(unsigned char byte0, unsigned char byte1, unsigned char byte2, char *wrBuffer)
+static inline void
+encode(unsigned char byte0, unsigned char byte1, unsigned char byte2, char *wrBuffer)
 {
   wrBuffer[0] = base64_table[(byte0 & 0xFC) >> 2];
   wrBuffer[1] = base64_table[((byte0 & 0x03) << 4) | ((byte1 & 0xF0) >> 4)];
@@ -68,7 +64,8 @@ static inline void encode(unsigned char byte0, unsigned char byte1, unsigned cha
  *  WARNING: return value must be freed after use!
  *
  */
-char *base64_encode(unsigned char *data, size_t len)
+char *
+base64_encode(unsigned char *data, size_t len)
 {
   char *encString = malloc(((len + 2) / 3) * 4 + 1);
   char *ptr;
@@ -76,30 +73,26 @@ char *base64_encode(unsigned char *data, size_t len)
   unsigned char help[3];
   int count;
 
-  if(!encString)
-  {
+  if (!encString) {
     ezwebsocket_log(EZLOG_ERROR, "malloc failed\n");
     return NULL;
   }
   ptr = encString;
 
-  for(i = 0; i < (len / 3) * 3; i += 3)
-  {
+  for (i = 0; i < (len / 3) * 3; i += 3) {
     encode(data[i + 0], data[i + 1], data[i + 2], ptr);
     ptr += 4;
   }
 
-  //check if we need to pad with 0
-  if(i < len)
-  {
+  // check if we need to pad with 0
+  if (i < len) {
     help[0] = 0;
     help[1] = 0;
     help[2] = 0;
 
     count = 0;
 
-    for(; i < len; i++)
-    {
+    for (; i < len; i++) {
       help[count] = data[i];
       count++;
     }
@@ -107,9 +100,8 @@ char *base64_encode(unsigned char *data, size_t len)
     encode(help[0], help[1], help[2], ptr);
     ptr += (count + 1);
 
-    //pad with '='
-    for(; count < 3; count++)
-    {
+    // pad with '='
+    for (; count < 3; count++) {
       *ptr = '=';
       ptr++;
     }

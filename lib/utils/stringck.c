@@ -22,8 +22,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <string.h>
 #include <stddef.h>
+#include <string.h>
 
 #ifndef strnstr
 /**
@@ -34,12 +34,12 @@
  * haystacklen Length of haystack
  *
  */
-char *strnstr(char *haystack, char *needle, size_t haystacklen)
+char *
+strnstr(char *haystack, char *needle, size_t haystacklen)
 {
   size_t i;
 
-  for (i = 0; i< haystacklen; i++)
-  {
+  for (i = 0; i < haystacklen; i++) {
     if (strncmp(&haystack[i], needle, strlen(needle)) == 0)
       return &haystack[i];
   }
