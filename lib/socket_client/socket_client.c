@@ -24,21 +24,21 @@
 
 #include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netdb.h>
-#include <netinet/tcp.h>
-#include <ezwebsocket_log.h>
+#include "socket_client.h"
+#include "utils/ref_count.h"
 #include <arpa/inet.h>
 #include <errno.h>
-#include "socket_client.h"
-#include <unistd.h>
-#include <string.h>
+#include <ezwebsocket_log.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <pthread.h>
-#include "utils/ref_count.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #ifdef HAVE_OPENSSL
 #include <openssl/ssl.h>
@@ -48,8 +48,7 @@
 #define MIN_ALLOC_SIZE 2048
 
 //! States of the socket client
-enum socket_client_state
-{
+enum socket_client_state {
   //! disconnected state
   SOCKET_CLIENT_STATE_DISCONNECTED,
   //! disconnect request state
@@ -59,12 +58,12 @@ enum socket_client_state
 };
 
 //! structure that contains information about a socket client
-struct socket_client_desc
-{
+struct socket_client_desc {
   //! callback function that gets called when data is received
-  size_t (*socket_onMessage)(void *socketUserData, void *socketDesc, void *sessionData, void *msg, size_t len);
+  size_t (*socket_onMessage)(void *socketUserData, void *socketDesc, void *sessionData, void *msg,
+                             size_t len);
   //! callback function that gets called when the socket is opened
-  void* (*socket_onOpen)(void *socketUserData, void *socketDesc);
+  void *(*socket_onOpen)(void *socketUserData, void *socketDesc);
   //! callback function that gets called when the socket is closed
   void (*socket_onClose)(void *socketUserData, void *socketDesc, void *sessionData);
   //! Pointer to the socket user data
@@ -98,7 +97,8 @@ struct socket_client_desc
  *
  * \return NULL
  */
-static void* socketClientThread(void *socketDescriptor)
+static void *
+socketClientThread(void *socketDescriptor)
 {
   struct socket_client_desc *socketDesc = socketDescriptor;
   fd_set readfds;
@@ -109,61 +109,56 @@ static void* socketClientThread(void *socketDescriptor)
   bool first;
   struct timeval tv;
 
-  //wait for start signal
+  // wait for start signal
   pthread_mutex_lock(&socketDesc->initDoneSignal);
 
-  if(socketDesc->socket_onOpen != NULL)
+  if (socketDesc->socket_onOpen != NULL)
     socketDesc->sessionData = socketDesc->socket_onOpen(socketDesc->socketUserData, socketDesc);
 
-  while(socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED)
-  {
+  while (socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED) {
     tv.tv_sec = 0;
     tv.tv_usec = 300000;
     FD_ZERO(&readfds);
     FD_SET(socketDesc->socketFd, &readfds);
-    if(select(socketDesc->socketFd + 1, &readfds, NULL, NULL, &tv) > 0)
-    {
-      if(FD_ISSET(socketDesc->socketFd, &readfds))
-      {
+    if (select(socketDesc->socketFd + 1, &readfds, NULL, NULL, &tv) > 0) {
+      if (FD_ISSET(socketDesc->socketFd, &readfds)) {
         first = true;
         increase = 1;
-        do
-        {
+        do {
           bytesFree = DYNBUFFER_BYTES_FREE(&socketDesc->buffer);
-          if( DYNBUFFER_BYTES_FREE( &socketDesc->buffer ) < MIN_ALLOC_SIZE)
-          {
+          if (DYNBUFFER_BYTES_FREE(&socketDesc->buffer) < MIN_ALLOC_SIZE) {
             dynBuffer_increase_to(&(socketDesc->buffer), MIN_ALLOC_SIZE * increase);
             bytesFree = DYNBUFFER_BYTES_FREE(&socketDesc->buffer);
             increase++;
           }
-	  #ifdef HAVE_OPENSSL
-          if(socketDesc->ssl)
+#ifdef HAVE_OPENSSL
+          if (socketDesc->ssl)
             n = SSL_read(socketDesc->ssl, DYNBUFFER_WRITE_POS(&(socketDesc->buffer)), bytesFree);
-	  else
-          #endif /* HAVE_OPENSSL */
-          n = recv(socketDesc->socketFd, DYNBUFFER_WRITE_POS(&(socketDesc->buffer)), bytesFree,
-          MSG_DONTWAIT);
-          if(first && (n == 0))
-          {
+          else
+#endif /* HAVE_OPENSSL */
+            n = recv(socketDesc->socketFd, DYNBUFFER_WRITE_POS(&(socketDesc->buffer)), bytesFree,
+                     MSG_DONTWAIT);
+          if (first && (n == 0)) {
             socketDesc->state = SOCKET_CLIENT_STATE_DISCONNECTED;
             break;
           }
           first = false;
 
-          if(n >= 0)
+          if (n >= 0)
             DYNBUFFER_INCREASE_WRITE_POS((&(socketDesc->buffer)), n);
           else
             break;
-        }while(((size_t)n == bytesFree) && (socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED));
+        } while (((size_t) n == bytesFree) && (socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED));
 
-        if(socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED)
-        {
-          do
-          {
-            count = socketDesc->socket_onMessage(socketDesc->socketUserData, socketDesc, socketDesc->sessionData,
-                DYNBUFFER_BUFFER(&(socketDesc->buffer)), DYNBUFFER_SIZE(&(socketDesc->buffer)));
+        if (socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED) {
+          do {
+            count = socketDesc->socket_onMessage(socketDesc->socketUserData, socketDesc,
+                                                 socketDesc->sessionData,
+                                                 DYNBUFFER_BUFFER(&(socketDesc->buffer)),
+                                                 DYNBUFFER_SIZE(&(socketDesc->buffer)));
             dynBuffer_removeLeadingBytes(&(socketDesc->buffer), count);
-          }while(count && DYNBUFFER_SIZE(&(socketDesc->buffer)) && (socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED));
+          } while (count && DYNBUFFER_SIZE(&(socketDesc->buffer)) &&
+                   (socketDesc->state == SOCKET_CLIENT_STATE_CONNECTED));
         }
       }
     }
@@ -171,9 +166,9 @@ static void* socketClientThread(void *socketDescriptor)
 
   dynBuffer_delete(&(socketDesc->buffer));
 
-  if(socketDesc->socket_onClose != NULL)
+  if (socketDesc->socket_onClose != NULL)
     socketDesc->socket_onClose(socketDesc->socketUserData, socketDesc, socketDesc->sessionData);
-  
+
   socketDesc->state = SOCKET_CLIENT_STATE_DISCONNECTED;
   socketDesc->taskRunning = false;
 
@@ -189,30 +184,29 @@ static void* socketClientThread(void *socketDescriptor)
  *
  * \return 0 if successful else -1
  */
-int socketClient_send(void *socketDescriptor, void *msg, size_t len)
+int
+socketClient_send(void *socketDescriptor, void *msg, size_t len)
 {
   struct socket_client_desc *socketDesc = socketDescriptor;
   int rc;
-  if(socketDesc == NULL)
-  {
+  if (socketDesc == NULL) {
     ezwebsocket_log(EZLOG_ERROR, "error socket descriptor is NULL\n");
     return -1;
   }
 
-  if(socketDesc->state != SOCKET_CLIENT_STATE_CONNECTED)
+  if (socketDesc->state != SOCKET_CLIENT_STATE_CONNECTED)
     return -1;
 
-  #ifdef HAVE_OPENSSL
-  if(socketDesc->ssl)
-     rc = SSL_write(socketDesc->ssl, msg, len);
+#ifdef HAVE_OPENSSL
+  if (socketDesc->ssl)
+    rc = SSL_write(socketDesc->ssl, msg, len);
   else
-  #endif /* HAVE_OPENSSL */
-  rc = send(socketDesc->socketFd, msg, len, MSG_NOSIGNAL);
-  if(rc == -1)
-  {
+#endif /* HAVE_OPENSSL */
+    rc = send(socketDesc->socketFd, msg, len, MSG_NOSIGNAL);
+  if (rc == -1) {
     ezwebsocket_log(EZLOG_ERROR, "send failed: %s\n", strerror(errno));
   }
-  return ((size_t)rc == len ? 0 : -1);
+  return ((size_t) rc == len ? 0 : -1);
 }
 
 /**
@@ -221,7 +215,8 @@ int socketClient_send(void *socketDescriptor, void *msg, size_t len)
  *
  * \param *socketDescriptor Pointer to the socket descriptor
  */
-void socketClient_start(void *socketDescriptor)
+void
+socketClient_start(void *socketDescriptor)
 {
   struct socket_client_desc *socketDesc = socketDescriptor;
 
@@ -236,11 +231,11 @@ void socketClient_start(void *socketDescriptor)
  *
  * \return Pointer to the socket descriptor
  */
-void* socketClient_open(struct socket_client_init *socketInit, void *socketUserData)
+void *
+socketClient_open(struct socket_client_init *socketInit, void *socketUserData)
 {
   struct socket_client_desc *socketDesc = malloc(sizeof(struct socket_client_desc));
-  if(socketDesc == NULL)
-  {
+  if (socketDesc == NULL) {
     return NULL;
   }
 
@@ -258,8 +253,7 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   dynBuffer_init(&socketDesc->buffer);
 
   socketDesc->socketFd = socket(AF_INET, SOCK_STREAM, 0);
-  if(socketDesc->socketFd < 0)
-  {
+  if (socketDesc->socketFd < 0) {
     ezwebsocket_log(EZLOG_ERROR, "failed to create socket\n");
     goto ERROR;
   }
@@ -268,13 +262,13 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   timeout.tv_sec = 10;
   timeout.tv_usec = 0;
 
-  if (setsockopt (socketDesc->socketFd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
-              sizeof(timeout)) < 0)
-      ezwebsocket_log(EZLOG_ERROR, "setsockopt failed\n");
+  if (setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout,
+                 sizeof(timeout)) < 0)
+    ezwebsocket_log(EZLOG_ERROR, "setsockopt failed\n");
 
-  if (setsockopt (socketDesc->socketFd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
-              sizeof(timeout)) < 0)
-      ezwebsocket_log(EZLOG_ERROR, "setsockopt failed\n");
+  if (setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_SNDTIMEO, (char *) &timeout,
+                 sizeof(timeout)) < 0)
+    ezwebsocket_log(EZLOG_ERROR, "setsockopt failed\n");
 
   struct sockaddr_in server;
 
@@ -282,73 +276,64 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
   server.sin_family = AF_INET;
   server.sin_port = htons(socketInit->port);
 
-  //Connect to remote server
-  if(connect(socketDesc->socketFd, (struct sockaddr*)&server, sizeof(server)) < 0)
-  {
+  // Connect to remote server
+  if (connect(socketDesc->socketFd, (struct sockaddr *) &server, sizeof(server)) < 0) {
     ezwebsocket_log(EZLOG_ERROR, "connection failed\n");
     goto ERROR;
   }
 
   int optval = socketInit->keepalive == true;
 
-  if(setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0)
-  {
+  if (setsockopt(socketDesc->socketFd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0) {
     ezwebsocket_log(EZLOG_ERROR, "setsockopt SO_KEEPALIVE failed\n");
   }
 
   optval = socketInit->keep_idle_sec;
-  if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval)) < 0)
-  {
+  if (setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval)) < 0) {
     ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPIDLE failed\n");
   }
 
   optval = socketInit->keep_cnt;
-  if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval)) < 0)
-  {
+  if (setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval)) < 0) {
     ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPCNT failed\n");
   }
 
   optval = socketInit->keep_intvl;
-  if(setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval)) < 0)
-  {
+  if (setsockopt(socketDesc->socketFd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval)) < 0) {
     ezwebsocket_log(EZLOG_ERROR, "setsockopt TCP_KEEPINTVL failed\n");
   }
 
-  #ifdef HAVE_OPENSSL
-  if(socketInit->secure)
-  {
+#ifdef HAVE_OPENSSL
+  if (socketInit->secure) {
     ezwebsocket_log(EZLOG_DEBUG, "use secure websocket\n");
     socketDesc->ssl_ctx = SSL_CTX_new(SSLv23_method());
     socketDesc->ssl = SSL_new(socketDesc->ssl_ctx);
     SSL_set_fd(socketDesc->ssl, socketDesc->socketFd);
     SSL_connect(socketDesc->ssl);
   }
-  #else
-  if(socketInit->secure)
-  {
+#else
+  if (socketInit->secure) {
     ezwebsocket_log(EZLOG_ERROR, "openssl not compiled in - cannot use secure websocket");
     abort();
   }
-  #endif /* HAVE_OPENSSL */
+#endif /* HAVE_OPENSSL */
 
   socketDesc->state = SOCKET_CLIENT_STATE_CONNECTED;
   socketDesc->taskRunning = true;
 
-  if(pthread_create(&socketDesc->tid, NULL, socketClientThread, socketDesc) != 0)
-  {
+  if (pthread_create(&socketDesc->tid, NULL, socketClientThread, socketDesc) != 0) {
     socketDesc->state = SOCKET_CLIENT_STATE_DISCONNECTED;
     socketDesc->taskRunning = false;
     ezwebsocket_log(EZLOG_ERROR, "failed to create socket client thread\n");
     goto ERROR;
-  }
-  else
-  {
+  } else {
     socketDesc->tidValid = true;
   }
 
   return socketDesc;
 
-  ERROR: socketClient_close(socketDesc);
+ERROR:
+  socketClient_close(socketDesc);
   return NULL;
 }
 
@@ -357,30 +342,29 @@ void* socketClient_open(struct socket_client_init *socketInit, void *socketUserD
  *
  * \param *socketDescriptor Pointer to the socket descriptor
  */
-void socketClient_close(void *socketDescriptor)
+void
+socketClient_close(void *socketDescriptor)
 {
   struct socket_client_desc *socketDesc = socketDescriptor;
 
-  if(socketDesc == NULL)
+  if (socketDesc == NULL)
     return;
-    
+
   socketDesc->state = SOCKET_CLIENT_STATE_DISCONNECT_REQUEST;
-  while(socketDesc->taskRunning)
+  while (socketDesc->taskRunning)
     usleep(30000);
 
   pthread_mutex_unlock(&socketDesc->initDoneSignal);
   pthread_mutex_destroy(&socketDesc->initDoneSignal);
 
-  if(socketDesc->tidValid)
-  {
+  if (socketDesc->tidValid) {
     socketDesc->state = SOCKET_CLIENT_STATE_DISCONNECTED;
     pthread_join(socketDesc->tid, NULL);
     socketDesc->tidValid = false;
     dynBuffer_delete(&socketDesc->buffer);
   }
 
-  if(socketDesc->socketFd != -1)
-  {
+  if (socketDesc->socketFd != -1) {
     close(socketDesc->socketFd);
     socketDesc->socketFd = -1;
   }
@@ -393,7 +377,8 @@ void socketClient_close(void *socketDescriptor)
  *
  * \param *socketDescriptor Pointer to the socket descriptor
  */
-void socketClient_closeConnection(void *socketDescriptor)
+void
+socketClient_closeConnection(void *socketDescriptor)
 {
   struct socket_client_desc *socketDesc = socketDescriptor;
   socketDesc->state = SOCKET_CLIENT_STATE_DISCONNECT_REQUEST;

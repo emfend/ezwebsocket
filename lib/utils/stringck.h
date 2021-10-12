@@ -26,7 +26,8 @@
 #define UTILS_STRINGCK_H_
 
 #ifndef strnstr
-char *strnstr(char *haystack, char *needle, size_t haystacklen);
+char *
+strnstr(char *haystack, char *needle, size_t haystacklen);
 #endif
 
 #endif /* UTILS_STRINGCK_H_ */

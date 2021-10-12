@@ -24,18 +24,18 @@
 
 #include "dyn_buffer.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <ezwebsocket_log.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * \brief Initializes a dynamic buffer
  *
  * \param *buffer Pointer to the buffer
  */
-void dynBuffer_init(struct dyn_buffer *buffer)
+void
+dynBuffer_init(struct dyn_buffer *buffer)
 {
   buffer->buffer = NULL;
   buffer->size = 0;
@@ -51,30 +51,25 @@ void dynBuffer_init(struct dyn_buffer *buffer)
  * \return 0 if successful else -1
  *
  */
-int dynBuffer_increase_to(struct dyn_buffer *buffer, size_t numFreeBytes)
+int
+dynBuffer_increase_to(struct dyn_buffer *buffer, size_t numFreeBytes)
 {
-  if(buffer->buffer == NULL)
-  {
+  if (buffer->buffer == NULL) {
     buffer->buffer = malloc(numFreeBytes);
-    if(!buffer->buffer)
-    {
+    if (!buffer->buffer) {
       ezwebsocket_log(EZLOG_ERROR, "malloc failed\n");
       return -1;
     }
 
     buffer->size = numFreeBytes;
     buffer->used = 0;
-  }
-  else
-  {
+  } else {
     char *newbuf;
 
-    if(buffer->size - buffer->used < numFreeBytes)
-    {
+    if (buffer->size - buffer->used < numFreeBytes) {
       buffer->size = buffer->used + numFreeBytes;
       newbuf = realloc(buffer->buffer, buffer->size);
-      if(!newbuf)
-      {
+      if (!newbuf) {
         free(buffer->buffer);
         buffer->buffer = NULL;
         buffer->size = 0;
@@ -97,30 +92,26 @@ int dynBuffer_increase_to(struct dyn_buffer *buffer, size_t numFreeBytes)
  *
  * \return 0 if successful else -1
  */
-int dynBuffer_removeLeadingBytes(struct dyn_buffer *buffer, size_t count)
+int
+dynBuffer_removeLeadingBytes(struct dyn_buffer *buffer, size_t count)
 {
-  if(buffer->buffer == NULL)
-  {
+  if (buffer->buffer == NULL) {
     ezwebsocket_log(EZLOG_ERROR, "empty buffer\n");
     return -1;
   }
 
-  if(!count)
+  if (!count)
     return 0;
 
-  if(buffer->used < count)
-  {
+  if (buffer->used < count) {
     ezwebsocket_log(EZLOG_ERROR, "not enough bytes in buffer\n");
     return -1;
   }
 
-  if(buffer->used > count)
-  {
+  if (buffer->used > count) {
     buffer->used = buffer->used - count;
     memmove(&buffer->buffer[0], &buffer->buffer[count], buffer->used);
-  }
-  else
-  {
+  } else {
     free(buffer->buffer);
     buffer->buffer = NULL;
     buffer->used = 0;
@@ -138,7 +129,8 @@ int dynBuffer_removeLeadingBytes(struct dyn_buffer *buffer, size_t count)
  * \return 0 if successful else -1
  *
  */
-int dynBuffer_delete(struct dyn_buffer *buffer)
+int
+dynBuffer_delete(struct dyn_buffer *buffer)
 {
   if (!buffer->buffer)
     return -1;
@@ -150,4 +142,3 @@ int dynBuffer_delete(struct dyn_buffer *buffer)
 
   return 0;
 }
-

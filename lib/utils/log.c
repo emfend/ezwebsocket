@@ -26,8 +26,8 @@
 #define _GNU_SOURCE
 #include "config.h"
 
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -39,20 +39,23 @@
 static int init_syslog = 1;
 #endif
 
-
-static int vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp);
-static int vlog(enum ezwebsocket_log_level log_level, const char *fm, va_list ap);
+static int
+vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp);
+static int
+vlog(enum ezwebsocket_log_level log_level, const char *fm, va_list ap);
 
 static ezwebsocket_log_func_t log_handler = vlog;
 static ezwebsocket_log_func_t log_continue_handler = vlog_continue;
 static int _log_level = EZLOG_ERROR;
 
-static int ezwebsocket_log_level_is_enabled(enum ezwebsocket_log_level level)
+static int
+ezwebsocket_log_level_is_enabled(enum ezwebsocket_log_level level)
 {
   return _log_level >= level;
 }
 
-static char *ezwebsocket_log_timestamp(char *buf, size_t len)
+static char *
+ezwebsocket_log_timestamp(char *buf, size_t len)
 {
   struct timeval tv;
   struct tm *_time;
@@ -67,59 +70,57 @@ static char *ezwebsocket_log_timestamp(char *buf, size_t len)
   }
 
   strftime(timestr, sizeof(timestr), "%H:%M:%S", _time);
-  snprintf(buf, len, "[%s.%03li]",
-    timestr, (tv.tv_usec / 1000));
+  snprintf(buf, len, "[%s.%03li]", timestr, (tv.tv_usec / 1000));
   return buf;
 }
 
-
 #ifdef HAVE_SYSLOG_H
-static int ezwebsocket_log_level_to_syslog_prio(enum ezwebsocket_log_level log_level)
+static int
+ezwebsocket_log_level_to_syslog_prio(enum ezwebsocket_log_level log_level)
 {
-  switch(log_level)
-  {
-    case EZLOG_ERROR:
-return LOG_ERR;
-	    break;
-    case EZLOG_WARNING:
-	return LOG_WARNING;
-	    break;
-    case EZLOG_INFO:
-		return LOG_INFO;
-	    break;
-    default:
-	    return LOG_DEBUG;
+  switch (log_level) {
+  case EZLOG_ERROR:
+    return LOG_ERR;
+    break;
+  case EZLOG_WARNING:
+    return LOG_WARNING;
+    break;
+  case EZLOG_INFO:
+    return LOG_INFO;
+    break;
+  default:
+    return LOG_DEBUG;
   }
   return LOG_DEBUG;
 }
 #endif
 
-static int ezwebsocket_log_level_vprintf(enum ezwebsocket_log_level log_level, char *fmt, va_list ap)
+static int
+ezwebsocket_log_level_vprintf(enum ezwebsocket_log_level log_level, char *fmt, va_list ap)
 {
   int len;
 #ifdef HAVE_SYSLOG_H
-  if(init_syslog)
-  {
-    openlog ("ezwebsocket", LOG_CONS | LOG_PID, LOG_USER);
+  if (init_syslog) {
+    openlog("ezwebsocket", LOG_CONS | LOG_PID, LOG_USER);
     init_syslog = 0;
   }
   vsyslog(ezwebsocket_log_level_to_syslog_prio(log_level), fmt, ap);
   len = 0;
 #else
-  switch(log_level)
-  {
-    case EZLOG_ERROR:
-      len = vfprintf(stderr, fmt, ap);
-      break;
-    default:
-      len = vfprintf(stdout, fmt, ap);
-      break;
+  switch (log_level) {
+  case EZLOG_ERROR:
+    len = vfprintf(stderr, fmt, ap);
+    break;
+  default:
+    len = vfprintf(stdout, fmt, ap);
+    break;
   }
 #endif
-return len;
+  return len;
 }
 
-static int ezwebsocket_log_level_printf(enum ezwebsocket_log_level log_level, char *fmt, ...)
+static int
+ezwebsocket_log_level_printf(enum ezwebsocket_log_level log_level, char *fmt, ...)
 {
   va_list ap;
   int len;
@@ -131,60 +132,66 @@ static int ezwebsocket_log_level_printf(enum ezwebsocket_log_level log_level, ch
   return len;
 }
 
-static int vlog(enum ezwebsocket_log_level log_level, const char *fmt, va_list ap)
+static int
+vlog(enum ezwebsocket_log_level log_level, const char *fmt, va_list ap)
 {
   const char *err = "error log";
   char timestr[128];
   int len = 0;
   char *str;
 
-  if(ezwebsocket_log_level_is_enabled(log_level))
-  {
+  if (ezwebsocket_log_level_is_enabled(log_level)) {
     int len_va;
     char *log_timestamp = ezwebsocket_log_timestamp(timestr, sizeof(timestr));
 
     len_va = vasprintf(&str, fmt, ap);
-    if(len_va >= 0) {
-       len = ezwebsocket_log_level_printf(log_level, "%s %s", log_timestamp, str);
-       free(str);
+    if (len_va >= 0) {
+      len = ezwebsocket_log_level_printf(log_level, "%s %s", log_timestamp, str);
+      free(str);
     } else {
-       len = ezwebsocket_log_level_printf(log_level, "%s %s", log_timestamp, err);
+      len = ezwebsocket_log_level_printf(log_level, "%s %s", log_timestamp, err);
     }
   }
 
   return len;
 }
 
-static int vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp)
+static int
+vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp)
 {
 
-  if(ezwebsocket_log_level_is_enabled(log_level))
-    return ezwebsocket_log_level_vprintf(log_level, (char *)fmt, argp);
+  if (ezwebsocket_log_level_is_enabled(log_level))
+    return ezwebsocket_log_level_vprintf(log_level, (char *) fmt, argp);
   return 0;
 }
 
-void ezwebsocket_log_set_handler(ezwebsocket_log_func_t log, ezwebsocket_log_func_t cont)
+void
+ezwebsocket_log_set_handler(ezwebsocket_log_func_t log, ezwebsocket_log_func_t cont)
 {
   log_handler = log;
   log_continue_handler = cont;
 }
 
-void ezwebsocket_set_level(enum ezwebsocket_log_level level)
+void
+ezwebsocket_set_level(enum ezwebsocket_log_level level)
 {
   _log_level = level;
 }
 
-int ezwebsocket_vlog(enum ezwebsocket_log_level log_level, const char *fmt, va_list ap)
+int
+ezwebsocket_vlog(enum ezwebsocket_log_level log_level, const char *fmt, va_list ap)
 {
   return log_handler(log_level, fmt, ap);
 }
 
-int ezwebsocket_vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp)
+int
+ezwebsocket_vlog_continue(enum ezwebsocket_log_level log_level, const char *fmt, va_list argp)
 {
   return log_continue_handler(log_level, fmt, argp);
 }
 
-int ezwebsocket_log(enum ezwebsocket_log_level log_level, const char *fmt, ...)
+int
+ezwebsocket_log(enum ezwebsocket_log_level log_level, const char *fmt, ...)
 {
   int l;
   va_list argp;
@@ -196,7 +203,8 @@ int ezwebsocket_log(enum ezwebsocket_log_level log_level, const char *fmt, ...)
   return l;
 }
 
-int ezwebsocket_log_continue(enum ezwebsocket_log_level log_level, const char *fmt, ...)
+int
+ezwebsocket_log_continue(enum ezwebsocket_log_level log_level, const char *fmt, ...)
 {
   int l;
   va_list argp;
@@ -207,4 +215,3 @@ int ezwebsocket_log_continue(enum ezwebsocket_log_level log_level, const char *f
 
   return l;
 }
-
